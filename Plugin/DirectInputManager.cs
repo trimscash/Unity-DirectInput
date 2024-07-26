@@ -9,7 +9,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Security.Cryptography;
 #if UNITY_STANDALONE_WIN
-  using UnityEngine;
+using UnityEngine;
 #endif
 
 namespace DirectInputManager {
@@ -34,6 +34,7 @@ namespace DirectInputManager {
     [DllImport(DLLFile)] public static extern int CreateFFBEffect(string guidInstance, FFBEffects effectType);
     [DllImport(DLLFile)] public static extern int DestroyFFBEffect(string guidInstance, FFBEffects effectType);
     [DllImport(DLLFile)] public static extern int UpdateFFBEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions);
+    [DllImport(DLLFile)] public static extern int UpdateFFBEffectDirection(string guidInstance, FFBEffects effectType, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction);
     [DllImport(DLLFile)] public static extern int StopAllFFBEffects(string guidInstance);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate void DeviceChangeCallback(DBTEvents DBTEvent);
@@ -106,16 +107,16 @@ namespace DirectInputManager {
           IntPtr pCurrent = ptrDevices + i * deviceSize; // Ptr to the current device
           _devices[i] = Marshal.PtrToStructure<DeviceInfo>(pCurrent); // Transform the Ptr into a C# instance of DeviceInfo
         }
-      }else{
+      } else {
         _devices = new DeviceInfo[0]; // empty _devices when no devices are present
       }
       return;
     }
 
-    public static async Task EnumerateDevicesAsync(){
+    public static async Task EnumerateDevicesAsync() {
       Task enumDevicesTask = Task.Run(EnumerateDevices);
-      Task warningTimeout  = Task.Delay(1000);
-      
+      Task warningTimeout = Task.Delay(1000);
+
       if (warningTimeout == await Task.WhenAny(enumDevicesTask, warningTimeout)) {
         DebugLog($"Warning EnumerateDevices is taking longer than expected!");
         await enumDevicesTask; // Continue to wait for EnumerateDevices
@@ -133,7 +134,7 @@ namespace DirectInputManager {
       int hresult = Native.CreateDevice(guidInstance);
       if (hresult != 0) { DebugLog($"CreateDevice Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)} {guidInstance}"); return false; }
       DeviceInfo device = _devices.Where(device => device.guidInstance == guidInstance).First();
-      _activeDevices.Add(guidInstance, new ActiveDeviceInfo(){ deviceInfo = device }); // Add device to our C# active device tracker (Dictionary allows us to easily check if GUID already exists)
+      _activeDevices.Add(guidInstance, new ActiveDeviceInfo() { deviceInfo = device }); // Add device to our C# active device tracker (Dictionary allows us to easily check if GUID already exists)
       return true;
     }
 
@@ -168,7 +169,7 @@ namespace DirectInputManager {
     // public static async Task<FlatJoyState2> GetDeviceStateAsync(string guidInstance){
     //   return await Task.Run(()=>{return GetDeviceState(guidInstance);});
     // }
-    
+
     /// <summary>
     /// Retrieve state of the Device<br/>
     /// *Warning* DIJOYSTATE2 contains arrays making it difficult to compare, concider using GetDeviceState
@@ -351,7 +352,7 @@ namespace DirectInputManager {
     /// Fetches device state for all devices and queues events<br/>
     /// </summary>
     public static void PollAll() {
-      foreach(ActiveDeviceInfo ADI in _activeDevices.Values) {
+      foreach (ActiveDeviceInfo ADI in _activeDevices.Values) {
         Poll(ADI.deviceInfo);
       }
     }
@@ -390,8 +391,8 @@ namespace DirectInputManager {
     public static event deviceInfoEvent OnDeviceRemoved;
 
     // Functions to invoke event listeners
-    public static void DeviceAdded  (DeviceInfo device){ OnDeviceAdded  ?.Invoke(device); } 
-    public static void DeviceRemoved(DeviceInfo device){ OnDeviceRemoved?.Invoke(device); }
+    public static void DeviceAdded(DeviceInfo device) { OnDeviceAdded?.Invoke(device); }
+    public static void DeviceRemoved(DeviceInfo device) { OnDeviceRemoved?.Invoke(device); }
 
     // static Action InvokeDebounce;
 
@@ -408,7 +409,7 @@ namespace DirectInputManager {
       ODCDebouncer.Debounce(() => { ScanDevicesForChanges(); });
     }
 
-    private static async void ScanDevicesForChanges(){
+    private static async void ScanDevicesForChanges() {
       DeviceInfo[] oldDevices = _devices;                              // Store currently known devices
       await EnumerateDevicesAsync();                                   // Fetch what devices are available now
 
@@ -417,7 +418,7 @@ namespace DirectInputManager {
 
       foreach (DeviceInfo device in removedDevices) {                  // Process removed devices
         ActiveDeviceInfo ADI;
-        if(_activeDevices.TryGetValue(device.guidInstance, out ADI)){
+        if (_activeDevices.TryGetValue(device.guidInstance, out ADI)) {
           ADI.DeviceRemoved(device);                                   // Invoke event listeners for this device
         }
         DeviceRemoved(device);                                         // Invoke all event listeners all devices
@@ -451,12 +452,12 @@ namespace DirectInputManager {
     public static bool UpdateEffect(string guidInstance, DICondition[] conditions) {
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
-        conditions[i].deadband =            ClampAgnostic(conditions[i].deadband,                 0, 10000);
-        conditions[i].offset =              ClampAgnostic(conditions[i].offset,              -10000, 10000);
+        conditions[i].deadband = ClampAgnostic(conditions[i].deadband, 0, 10000);
+        conditions[i].offset = ClampAgnostic(conditions[i].offset, -10000, 10000);
         conditions[i].negativeCoefficient = ClampAgnostic(conditions[i].negativeCoefficient, -10000, 10000);
         conditions[i].positiveCoefficient = ClampAgnostic(conditions[i].positiveCoefficient, -10000, 10000);
-        conditions[i].negativeSaturation =  ClampAgnostic(conditions[i].negativeSaturation,       0, 10000);
-        conditions[i].positiveSaturation =  ClampAgnostic(conditions[i].positiveSaturation,       0, 10000);
+        conditions[i].negativeSaturation = ClampAgnostic(conditions[i].negativeSaturation, 0, 10000);
+        conditions[i].positiveSaturation = ClampAgnostic(conditions[i].positiveSaturation, 0, 10000);
       }
 
       int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Spring, conditions);
@@ -502,12 +503,12 @@ namespace DirectInputManager {
       DICondition[] conditions = new DICondition[1];
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
-        conditions[i].deadband =            ClampAgnostic(deadband,                 0, 10000);
-        conditions[i].offset =              ClampAgnostic(offset,              -10000, 10000);
+        conditions[i].deadband = ClampAgnostic(deadband, 0, 10000);
+        conditions[i].offset = ClampAgnostic(offset, -10000, 10000);
         conditions[i].negativeCoefficient = ClampAgnostic(negativeCoefficient, -10000, 10000);
         conditions[i].positiveCoefficient = ClampAgnostic(positiveCoefficient, -10000, 10000);
-        conditions[i].negativeSaturation =  ClampAgnostic(negativeSaturation,       0, 10000);
-        conditions[i].positiveSaturation =  ClampAgnostic(positiveSaturation,       0, 10000);
+        conditions[i].negativeSaturation = ClampAgnostic(negativeSaturation, 0, 10000);
+        conditions[i].positiveSaturation = ClampAgnostic(positiveSaturation, 0, 10000);
       }
 
       int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Spring, conditions);
@@ -737,7 +738,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateSpringSimple(DeviceInfo device, uint deadband, int offset, int negativeCoefficient, int positiveCoefficient, uint negativeSaturation, uint positiveSaturation) => UpdateSpringSimple(device.guidInstance, deadband, offset, negativeCoefficient, positiveCoefficient, negativeSaturation, positiveSaturation);
-    
+
     /// <summary>
     /// Magnitude: Strength of Force [-10,000 - 10,0000]
     /// </summary>
@@ -775,7 +776,7 @@ namespace DirectInputManager {
   /// Taken from: https://stackoverflow.com/a/21174331/9053848
   /// </summary>
   public static class WinErrors {
-#region definitions
+    #region definitions
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern IntPtr LocalFree(IntPtr hMem);
 
@@ -791,7 +792,7 @@ namespace DirectInputManager {
       FORMAT_MESSAGE_FROM_HMODULE = 0x00000800,
       FORMAT_MESSAGE_FROM_STRING = 0x00000400,
     }
-#endregion
+    #endregion
 
     /// <summary>
     /// Gets a user friendly string message for a system error code
