@@ -34,6 +34,7 @@ namespace DirectInputManager {
     [DllImport(DLLFile)] public static extern int CreateFFBEffect(string guidInstance, FFBEffects effectType);
     [DllImport(DLLFile)] public static extern int DestroyFFBEffect(string guidInstance, FFBEffects effectType);
     [DllImport(DLLFile)] public static extern int UpdateFFBEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions);
+    [DllImport(DLLFile)] public static extern int UpdateFFBEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction);
     [DllImport(DLLFile)] public static extern int UpdateFFBEffectDirection(string guidInstance, FFBEffects effectType, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction);
     [DllImport(DLLFile)] public static extern int StopAllFFBEffects(string guidInstance);
 
