@@ -467,6 +467,61 @@ namespace DirectInputManager {
     }
 
     /// <summary>
+    /// Update existing effect with new DICONDITION array and int[] direction array<br/><br/>
+    /// 
+    /// DICondition[DeviceFFBEffectAxesCount]:<br/><br/>
+    /// deadband: Inacive Zone [-10,000 - 10,000]<br/>
+    /// offset: Move Effect Center[-10,000 - 10,000]<br/>
+    /// negativeCoefficient: Negative of center coefficient [-10,000 - 10,000]<br/>
+    /// positiveCoefficient: Positive of center Coefficient [-10,000 - 10,000]<br/>
+    /// negativeSaturation: Negative of center saturation [0 - 10,000]<br/>
+    /// positiveSaturation: Positive of center saturation [0 - 10,000]<br/>
+    /// 
+    /// int[DeviceFFBEffectAxesCount] direction: The first element in the array is the x-coordinate of the direction vector, and the second is the y-coordinate. <br/> 
+    /// </summary>
+    /// <returns>
+    /// A boolean representing the if the Effect updated successfully
+    /// </returns>
+    public static bool UpdateEffect(string guidInstance, DICondition[] conditions, int[] direction) {
+      for (int i = 0; i < conditions.Length; i++) {
+        conditions[i] = new DICondition();
+        conditions[i].deadband = ClampAgnostic(conditions[i].deadband, 0, 10000);
+        conditions[i].offset = ClampAgnostic(conditions[i].offset, -10000, 10000);
+        conditions[i].negativeCoefficient = ClampAgnostic(conditions[i].negativeCoefficient, -10000, 10000);
+        conditions[i].positiveCoefficient = ClampAgnostic(conditions[i].positiveCoefficient, -10000, 10000);
+        conditions[i].negativeSaturation = ClampAgnostic(conditions[i].negativeSaturation, 0, 10000);
+        conditions[i].positiveSaturation = ClampAgnostic(conditions[i].positiveSaturation, 0, 10000);
+      }
+
+      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Spring, conditions, direction);
+      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
+      return true;
+    }
+
+    /// <summary>
+    /// Magnitude: Strength of Force [-10,000 - 10,0000]
+    /// </summary>
+    /// <returns>
+    /// A boolean representing the if the Effect updated successfully
+    /// </returns>
+    public static bool UpdateConstantForceSimple(string guidInstance, int Magnitude, int[] direction) {
+      DICondition[] conditions = new DICondition[1];
+      for (int i = 0; i < conditions.Length; i++) {
+        conditions[i] = new DICondition();
+        conditions[i].deadband = 0;
+        conditions[i].offset = 0;
+        conditions[i].negativeCoefficient = ClampAgnostic(Magnitude, -10000, 10000);
+        conditions[i].positiveCoefficient = ClampAgnostic(Magnitude, -10000, 10000);
+        conditions[i].negativeSaturation = 0;
+        conditions[i].positiveSaturation = 0;
+      }
+
+      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.ConstantForce, conditions, direction);
+      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
+      return true;
+    }
+
+    /// <summary>
     /// Magnitude: Strength of Force [-10,000 - 10,0000]
     /// </summary>
     /// <returns>
