@@ -460,17 +460,7 @@ namespace DirectInputManager {
     public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions) {
       int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
 
-      if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum"); return false; }
-
-      for (int i = 0; i < conditions.Length; i++) {
-        conditions[i] = new DICondition();
-        conditions[i].deadband = ClampAgnostic(conditions[i].deadband, 0, 10000);
-        conditions[i].offset = ClampAgnostic(conditions[i].offset, -10000, 10000);
-        conditions[i].negativeCoefficient = ClampAgnostic(conditions[i].negativeCoefficient, -10000, 10000);
-        conditions[i].positiveCoefficient = ClampAgnostic(conditions[i].positiveCoefficient, -10000, 10000);
-        conditions[i].negativeSaturation = ClampAgnostic(conditions[i].negativeSaturation, 0, 10000);
-        conditions[i].positiveSaturation = ClampAgnostic(conditions[i].positiveSaturation, 0, 10000);
-      }
+      if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum, conditions.Length={conditions.Length} axisNum={axisNum}"); return false; }
 
       int hresult = Native.UpdateFFBEffect(guidInstance, effectType, conditions, conditions.Length);
       if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
@@ -496,18 +486,8 @@ namespace DirectInputManager {
     public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions, int[] direction) {
       int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
 
-      if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum"); return false; }
-      if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum"); return false; }
-
-      for (int i = 0; i < conditions.Length; i++) {
-        conditions[i] = new DICondition();
-        conditions[i].deadband = ClampAgnostic(conditions[i].deadband, 0, 10000);
-        conditions[i].offset = ClampAgnostic(conditions[i].offset, -10000, 10000);
-        conditions[i].negativeCoefficient = ClampAgnostic(conditions[i].negativeCoefficient, -10000, 10000);
-        conditions[i].positiveCoefficient = ClampAgnostic(conditions[i].positiveCoefficient, -10000, 10000);
-        conditions[i].negativeSaturation = ClampAgnostic(conditions[i].negativeSaturation, 0, 10000);
-        conditions[i].positiveSaturation = ClampAgnostic(conditions[i].positiveSaturation, 0, 10000);
-      }
+      if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum, conditions.Length={conditions.Length} axisNum={axisNum}"); return false; }
+      if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum, direction.Length={direction.Length} axisNum={axisNum}"); return false; }
 
       int hresult = Native.UpdateFFBEffectWithDirection(guidInstance, effectType, conditions, conditions.Length, direction, direction.Length);
       if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
@@ -524,7 +504,7 @@ namespace DirectInputManager {
       int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
       DICondition[] conditions = new DICondition[axisNum];
 
-      if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum"); return false; }
+      if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum, direction.Length={direction.Length} axisNum={axisNum}"); return false; }
 
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
