@@ -33,9 +33,9 @@ namespace DirectInputManager {
     [DllImport(DLLFile)] public static extern int EnumerateFFBAxis(string guidInstance, [MarshalAs(UnmanagedType.SafeArray, SafeArraySubType = VarEnum.VT_BSTR)] out string[] SupportedFFBAxis);
     [DllImport(DLLFile)] public static extern int CreateFFBEffect(string guidInstance, FFBEffects effectType);
     [DllImport(DLLFile)] public static extern int DestroyFFBEffect(string guidInstance, FFBEffects effectType);
-    [DllImport(DLLFile)] public static extern int UpdateFFBEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions);
-    [DllImport(DLLFile)] public static extern int UpdateFFBEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction);
-    [DllImport(DLLFile)] public static extern int UpdateFFBEffectDirection(string guidInstance, FFBEffects effectType, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction);
+    [DllImport(DLLFile)] public static extern int UpdateFFBEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions, int conditionsLen);
+    [DllImport(DLLFile)] public static extern int UpdateFFBEffectWithDirection(string guidInstance, FFBEffects effectType, DICondition[] conditions, int conditionsLen, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction, int directionLen);
+    [DllImport(DLLFile)] public static extern int UpdateFFBEffectDirection(string guidInstance, FFBEffects effectType, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction, int directionLen);
     [DllImport(DLLFile)] public static extern int StopAllFFBEffects(string guidInstance);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate void DeviceChangeCallback(DBTEvents DBTEvent);
@@ -74,6 +74,8 @@ namespace DirectInputManager {
     public static bool isInitialized { get => _isInitialized; }
     public static DeviceInfo[] devices { get => _devices; }
     public static Dictionary<string, ActiveDeviceInfo> activeDevices { get => _activeDevices; }
+
+    public static Dictionary<string, DIDEVCAPS> deviceCapabilities = new Dictionary<string, DIDEVCAPS>();
 
     //////////////////////////////////////////////////////////////
     // Methods
@@ -210,9 +212,14 @@ namespace DirectInputManager {
     /// DIDEVCAPS https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ee416607(v=vs.85)
     /// </returns>
     public static DIDEVCAPS GetDeviceCapabilities(string guidInstance) {
+      if (deviceCapabilities.ContainsKey(guidInstance)) {
+        return deviceCapabilities[guidInstance];
+      }
+
       DIDEVCAPS DeviceCapabilities = new DIDEVCAPS();
       int hresult = Native.GetDeviceCapabilities(guidInstance, out DeviceCapabilities);
       if (hresult != 0) { DebugLog($"GetDeviceCapabilities Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); /*return false;*/ }
+      deviceCapabilities.Add(guidInstance, DeviceCapabilities);
       return DeviceCapabilities;
     }
 
@@ -450,7 +457,11 @@ namespace DirectInputManager {
     /// <returns>
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
-    public static bool UpdateEffect(string guidInstance, DICondition[] conditions) {
+    public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions) {
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+
+      if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum"); return false; }
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = ClampAgnostic(conditions[i].deadband, 0, 10000);
@@ -461,7 +472,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = ClampAgnostic(conditions[i].positiveSaturation, 0, 10000);
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Spring, conditions);
+      int hresult = Native.UpdateFFBEffect(guidInstance, effectType, conditions, conditions.Length);
       if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
       return true;
     }
@@ -482,7 +493,12 @@ namespace DirectInputManager {
     /// <returns>
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
-    public static bool UpdateEffect(string guidInstance, DICondition[] conditions, int[] direction) {
+    public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions, int[] direction) {
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+
+      if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum"); return false; }
+      if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum"); return false; }
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = ClampAgnostic(conditions[i].deadband, 0, 10000);
@@ -493,7 +509,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = ClampAgnostic(conditions[i].positiveSaturation, 0, 10000);
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Spring, conditions, direction);
+      int hresult = Native.UpdateFFBEffectWithDirection(guidInstance, effectType, conditions, conditions.Length, direction, direction.Length);
       if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
       return true;
     }
@@ -505,7 +521,11 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateConstantForceSimple(string guidInstance, int Magnitude, int[] direction) {
-      DICondition[] conditions = new DICondition[1];
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      DICondition[] conditions = new DICondition[axisNum];
+
+      if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum"); return false; }
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = 0;
@@ -516,9 +536,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = 0;
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.ConstantForce, conditions, direction);
-      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
-      return true;
+      return UpdateEffect(guidInstance, FFBEffects.ConstantForce, conditions, direction);
     }
 
     /// <summary>
@@ -528,7 +546,9 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateConstantForceSimple(string guidInstance, int Magnitude) {
-      DICondition[] conditions = new DICondition[1];
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      DICondition[] conditions = new DICondition[axisNum];
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = 0;
@@ -539,9 +559,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = 0;
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.ConstantForce, conditions);
-      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
-      return true;
+      return UpdateEffect(guidInstance, FFBEffects.ConstantForce, conditions);
     }
 
     /// <summary>
@@ -556,7 +574,9 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateSpringSimple(string guidInstance, uint deadband, int offset, int negativeCoefficient, int positiveCoefficient, uint negativeSaturation, uint positiveSaturation) {
-      DICondition[] conditions = new DICondition[1];
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      DICondition[] conditions = new DICondition[axisNum];
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = ClampAgnostic(deadband, 0, 10000);
@@ -567,9 +587,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = ClampAgnostic(positiveSaturation, 0, 10000);
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Spring, conditions);
-      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
-      return true;
+      return UpdateEffect(guidInstance, FFBEffects.Spring, conditions);
     }
 
     /// <summary>
@@ -579,7 +597,9 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateDamperSimple(string guidInstance, int Magnitude) {
-      DICondition[] conditions = new DICondition[1];
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      DICondition[] conditions = new DICondition[axisNum];
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = 0;
@@ -590,9 +610,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = 0;
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Damper, conditions);
-      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
-      return true;
+      return UpdateEffect(guidInstance, FFBEffects.Damper, conditions);
     }
 
 
@@ -603,7 +621,9 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateFrictionSimple(string guidInstance, int Magnitude) {
-      DICondition[] conditions = new DICondition[1];
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      DICondition[] conditions = new DICondition[axisNum];
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = 0;
@@ -614,9 +634,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = 0;
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Friction, conditions);
-      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
-      return true;
+      return UpdateEffect(guidInstance, FFBEffects.Friction, conditions);
     }
 
     /// <summary>
@@ -626,7 +644,9 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateInertiaSimple(string guidInstance, int Magnitude) {
-      DICondition[] conditions = new DICondition[1];
+      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      DICondition[] conditions = new DICondition[axisNum];
+
       for (int i = 0; i < conditions.Length; i++) {
         conditions[i] = new DICondition();
         conditions[i].deadband = 0;
@@ -637,9 +657,7 @@ namespace DirectInputManager {
         conditions[i].positiveSaturation = 0;
       }
 
-      int hresult = Native.UpdateFFBEffect(guidInstance, FFBEffects.Inertia, conditions);
-      if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
-      return true;
+      return UpdateEffect(guidInstance, FFBEffects.Inertia, conditions);
     }
 
     //////////////////////////////////////////////////////////////
