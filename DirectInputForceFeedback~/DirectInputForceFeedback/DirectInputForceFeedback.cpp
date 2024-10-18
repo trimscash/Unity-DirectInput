@@ -348,10 +348,12 @@ HRESULT DestroyFFBEffect(LPCSTR guidInstance, Effects::Type effectType) {
   return hr;
 }
 
-HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITION* conditions) {
+HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, const std::vector<DICONDITION>& conditions) {
   HRESULT hr = E_FAIL;
   std::string GUIDString((LPCSTR)guidInstance); if (!_ActiveDevices.contains(GUIDString)) return hr; // Device not attached, fail
   if (!_DeviceFFBEffectControl[GUIDString].contains(effectType)) { return E_ABORT; } // Effect doesn't exist
+
+  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != conditions.size()) { return E_ABORT; }
 
   for (int idx = 0; idx < _DeviceFFBEffectConfig[GUIDString][effectType].cAxes; idx++) { // For each Axis in this effect
     switch (effectType) {
@@ -361,7 +363,7 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
       _DeviceFFBEffectConfig[GUIDString][Effects::Type::ConstantForce].lpvTypeSpecificParams = &CF;
       break;
     default:
-      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions->lOffset;
+      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions[idx].lOffset;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lPositiveCoefficient = conditions[idx].lPositiveCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lNegativeCoefficient = conditions[idx].lNegativeCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].dwPositiveSaturation = conditions[idx].dwPositiveSaturation;
@@ -375,7 +377,7 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
 }
 
 
-HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITION* conditions, const std::vector<LONG>& direction) {
+HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, const std::vector<DICONDITION>& conditions, const std::vector<LONG>& direction) {
   HRESULT hr = E_FAIL;
   std::string GUIDString((LPCSTR)guidInstance);
   if (!_ActiveDevices.contains(GUIDString)) return hr;  // Device not attached, fail
@@ -384,6 +386,7 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
   }  // Effect doesn't exist
 
   if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != direction.size()) { return E_ABORT; }
+  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != conditions.size()) { return E_ABORT; }
 
   for (int idx = 0; idx < _DeviceFFBEffectConfig[GUIDString][effectType].cAxes; idx++) {	// For each Axis in this effect
     switch (effectType) {
@@ -393,7 +396,7 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
       _DeviceFFBEffectConfig[GUIDString][Effects::Type::ConstantForce].lpvTypeSpecificParams = &CF;
       break;
     default:
-      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions->lOffset;
+      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions[idx].lOffset;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lPositiveCoefficient = conditions[idx].lPositiveCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lNegativeCoefficient = conditions[idx].lNegativeCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].dwPositiveSaturation = conditions[idx].dwPositiveSaturation;
