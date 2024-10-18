@@ -1,4 +1,4 @@
-﻿#pragma warning disable CS0618 // Disable Marshalling warnings
+#pragma warning disable CS0618 // Disable Marshalling warnings
 
 using System;
 using System.Collections.Generic;
@@ -458,7 +458,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
 
       if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum"); return false; }
 
@@ -494,7 +494,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions, int[] direction) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
 
       if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum"); return false; }
       if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum"); return false; }
@@ -521,7 +521,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateConstantForceSimple(string guidInstance, int Magnitude, int[] direction) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
       DICondition[] conditions = new DICondition[axisNum];
 
       if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum"); return false; }
@@ -546,7 +546,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateConstantForceSimple(string guidInstance, int Magnitude) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
       DICondition[] conditions = new DICondition[axisNum];
 
       for (int i = 0; i < conditions.Length; i++) {
@@ -574,7 +574,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateSpringSimple(string guidInstance, uint deadband, int offset, int negativeCoefficient, int positiveCoefficient, uint negativeSaturation, uint positiveSaturation) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
       DICondition[] conditions = new DICondition[axisNum];
 
       for (int i = 0; i < conditions.Length; i++) {
@@ -597,7 +597,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateDamperSimple(string guidInstance, int Magnitude) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
       DICondition[] conditions = new DICondition[axisNum];
 
       for (int i = 0; i < conditions.Length; i++) {
@@ -621,7 +621,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateFrictionSimple(string guidInstance, int Magnitude) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
       DICondition[] conditions = new DICondition[axisNum];
 
       for (int i = 0; i < conditions.Length; i++) {
@@ -644,7 +644,7 @@ namespace DirectInputManager {
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
     public static bool UpdateInertiaSimple(string guidInstance, int Magnitude) {
-      int axisNum = GetDeviceCapabilities(guidInstance).dwAxes;
+      int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
       DICondition[] conditions = new DICondition[axisNum];
 
       for (int i = 0; i < conditions.Length; i++) {
@@ -790,7 +790,25 @@ namespace DirectInputManager {
     /// <returns>
     /// A boolean representing the if the Effect updated successfully
     /// </returns>
-    public static bool UpdateEffect(DeviceInfo device, DICondition[] conditions) => UpdateEffect(device.guidInstance, conditions);
+    public static bool UpdateEffect(DeviceInfo device, FFBEffects effectType, DICondition[] conditions) => UpdateEffect(device.guidInstance, effectType, conditions);
+
+    /// <summary>
+    /// Update existing effect with new DICONDITION array and int[] direction array<br/><br/>
+    /// 
+    /// DICondition[DeviceFFBEffectAxesCount]:<br/><br/>
+    /// deadband: Inacive Zone [-10,000 - 10,000]<br/>
+    /// offset: Move Effect Center[-10,000 - 10,000]<br/>
+    /// negativeCoefficient: Negative of center coefficient [-10,000 - 10,000]<br/>
+    /// positiveCoefficient: Positive of center Coefficient [-10,000 - 10,000]<br/>
+    /// negativeSaturation: Negative of center saturation [0 - 10,000]<br/>
+    /// positiveSaturation: Positive of center saturation [0 - 10,000]<br/>
+    /// 
+    /// int[DeviceFFBEffectAxesCount] direction: The first element in the array is the x-coordinate of the direction vector, and the second is the y-coordinate. <br/> 
+    /// </summary>
+    /// <returns>
+    /// A boolean representing the if the Effect updated successfully
+    /// </returns>
+    public static bool UpdateEffect(DeviceInfo device, FFBEffects effectType, DICondition[] conditions, int[] direction) => UpdateEffect(device.guidInstance, effectType, conditions, direction);
 
     /// <summary>
     /// Magnitude: Strength of Force [-10,000 - 10,0000]
