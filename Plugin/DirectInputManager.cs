@@ -521,7 +521,7 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
 
             if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum, conditions.Length={conditions.Length} axisNum={axisNum}"); return false; }
 
@@ -548,7 +548,7 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateEffect(string guidInstance, FFBEffects effectType, DICondition[] conditions, int[] direction)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
 
             if (conditions.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: conditions.Length != axisNum, conditions.Length={conditions.Length} axisNum={axisNum}"); return false; }
             if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum, direction.Length={direction.Length} axisNum={axisNum}"); return false; }
@@ -566,7 +566,8 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateConstantForceSimple(string guidInstance, int Magnitude, int[] direction)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
+
             DICondition[] conditions = new DICondition[axisNum];
 
             if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum, direction.Length={direction.Length} axisNum={axisNum}"); return false; }
@@ -593,7 +594,7 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateConstantForceSimple(string guidInstance, int Magnitude)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
             DICondition[] conditions = new DICondition[axisNum];
 
             for (int i = 0; i < conditions.Length; i++)
@@ -623,7 +624,7 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateSpringSimple(string guidInstance, uint deadband, int offset, int negativeCoefficient, int positiveCoefficient, uint negativeSaturation, uint positiveSaturation)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
             DICondition[] conditions = new DICondition[axisNum];
 
             for (int i = 0; i < conditions.Length; i++)
@@ -648,7 +649,7 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateDamperSimple(string guidInstance, int Magnitude)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
             DICondition[] conditions = new DICondition[axisNum];
 
             for (int i = 0; i < conditions.Length; i++)
@@ -674,7 +675,7 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateFrictionSimple(string guidInstance, int Magnitude)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
             DICondition[] conditions = new DICondition[axisNum];
 
             for (int i = 0; i < conditions.Length; i++)
@@ -699,7 +700,7 @@ namespace DirectInputManager
         /// </returns>
         public static bool UpdateInertiaSimple(string guidInstance, int Magnitude)
         {
-            int axisNum = (int)GetDeviceCapabilities(guidInstance).dwAxes;
+            int axisNum = (int)GetDeviceFFBAxisNum(guidInstance);
             DICondition[] conditions = new DICondition[axisNum];
 
             for (int i = 0; i < conditions.Length; i++)
