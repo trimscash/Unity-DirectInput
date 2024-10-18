@@ -1,6 +1,7 @@
 // DirectInputForceFeedback.cpp : Defines the exported functions for the DLL.
 #include "pch.h"
 #include "DirectInputForceFeedback.h"
+#include "iostream"
 
 typedef std::string DeviceGUID; // Alias to make it clearer what maps below use as key
 
@@ -241,6 +242,27 @@ HRESULT EnumerateFFBAxes(LPCSTR guidInstance, /*[out]*/ SAFEARRAY** FFBAxes) {
   return hr;
 }
 
+// Get Axis Num. it is not same as DIDEVCAPS.dwAxis. same as DIEFFECT.cAxis
+HRESULT GetDeviceFFBAxisNum(LPCSTR guidInstance,/*[out]*/ int& AxisNum) {
+  HRESULT hr = E_FAIL;
+
+  std::string GUIDString((LPCSTR)guidInstance);
+  
+  if (!_ActiveDevices.contains(GUIDString)) return hr;
+
+  //Enumerate FFBAxes if not already
+  if (!_DeviceFFBAxes.contains(GUIDString)) {
+    _DeviceFFBAxes[GUIDString].clear(); // Clear Axes info for this device
+    hr = _ActiveDevices[GUIDString]->EnumObjects(&_EnumFFBAxisCallback, &GUIDString, DIEFT_ALL); // Callback adds each effect to _DeviceFFBAxes with key as device's GUID
+    AxisNum = _DeviceFFBAxes[GUIDString].size();
+    return hr;
+  }
+
+  AxisNum = (int)_DeviceFFBAxes[GUIDString].size();
+
+  return S_OK;
+}
+
 // Creates/Enables the Effect on the device 
 HRESULT CreateFFBEffect(LPCSTR guidInstance, Effects::Type effectType) {
   HRESULT hr = E_FAIL;
@@ -348,10 +370,12 @@ HRESULT DestroyFFBEffect(LPCSTR guidInstance, Effects::Type effectType) {
   return hr;
 }
 
-HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITION* conditions) {
+HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITION* conditions, LONG conditionsLen){
   HRESULT hr = E_FAIL;
   std::string GUIDString((LPCSTR)guidInstance); if (!_ActiveDevices.contains(GUIDString)) return hr; // Device not attached, fail
   if (!_DeviceFFBEffectControl[GUIDString].contains(effectType)) { return E_ABORT; } // Effect doesn't exist
+  
+  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != conditionsLen) { return E_ABORT; }
 
   for (int idx = 0; idx < _DeviceFFBEffectConfig[GUIDString][effectType].cAxes; idx++) { // For each Axis in this effect
     switch (effectType) {
@@ -361,7 +385,7 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
       _DeviceFFBEffectConfig[GUIDString][Effects::Type::ConstantForce].lpvTypeSpecificParams = &CF;
       break;
     default:
-      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions->lOffset;
+      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions[idx].lOffset;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lPositiveCoefficient = conditions[idx].lPositiveCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lNegativeCoefficient = conditions[idx].lNegativeCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].dwPositiveSaturation = conditions[idx].dwPositiveSaturation;
@@ -375,15 +399,16 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
 }
 
 
-HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITION* conditions, const std::vector<LONG>& direction) {
-  HRESULT hr = E_FAIL;
+DIRECTINPUTFORCEFEEDBACK_API HRESULT UpdateFFBEffectWithDirection(LPCSTR guidInstance, Effects::Type effectType, DICONDITION* conditions, LONG conditionsLen, LONG* direction, LONG directionLen){
+HRESULT hr = E_FAIL;
   std::string GUIDString((LPCSTR)guidInstance);
   if (!_ActiveDevices.contains(GUIDString)) return hr;  // Device not attached, fail
   if (!_DeviceFFBEffectControl[GUIDString].contains(effectType)) {
     return E_ABORT;
   }  // Effect doesn't exist
 
-  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != direction.size()) { return E_ABORT; }
+  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != directionLen) { return E_ABORT; }
+  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != conditionsLen) { return E_ABORT; }
 
   for (int idx = 0; idx < _DeviceFFBEffectConfig[GUIDString][effectType].cAxes; idx++) {	// For each Axis in this effect
     switch (effectType) {
@@ -393,7 +418,7 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
       _DeviceFFBEffectConfig[GUIDString][Effects::Type::ConstantForce].lpvTypeSpecificParams = &CF;
       break;
     default:
-      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions->lOffset;
+      ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lOffset = conditions[idx].lOffset;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lPositiveCoefficient = conditions[idx].lPositiveCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].lNegativeCoefficient = conditions[idx].lNegativeCoefficient;
       ((DICONDITION*)_DeviceFFBEffectConfig[GUIDString][effectType].lpvTypeSpecificParams)[idx].dwPositiveSaturation = conditions[idx].dwPositiveSaturation;
@@ -412,12 +437,12 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITI
 }
 
 
-HRESULT UpdateFFBEffectDirection(LPCSTR guidInstance, Effects::Type effectType, const std::vector<LONG>& direction) {
+HRESULT UpdateFFBEffectDirection(LPCSTR guidInstance, Effects::Type effectType, LONG* direction, LONG directionLen) {
   HRESULT hr = E_FAIL;
   std::string GUIDString((LPCSTR)guidInstance); if (!_ActiveDevices.contains(GUIDString)) return hr; // Device not attached, fail
   if (!_DeviceFFBEffectControl[GUIDString].contains(effectType)) { return E_ABORT; } // Effect doesn't exist
 
-  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != direction.size()) { return E_ABORT; }
+  if (_DeviceFFBEffectConfig[GUIDString][effectType].cAxes != directionLen) { return E_ABORT; }
 
   for (int idx = 0; idx < _DeviceFFBEffectConfig[GUIDString][effectType].cAxes; idx++) { // For each Axis in this effect
     _DeviceFFBEffectConfig[GUIDString][effectType].rglDirection[idx] = direction[idx];
