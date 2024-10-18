@@ -377,7 +377,7 @@ HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, const std
 }
 
 
-HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, const std::vector<DICONDITION>& conditions, const std::vector<LONG>& direction) {
+HRESULT UpdateFFBEffectWithDirection(LPCSTR guidInstance, Effects::Type effectType, const std::vector<DICONDITION>& conditions, const std::vector<LONG>& direction) {
   HRESULT hr = E_FAIL;
   std::string GUIDString((LPCSTR)guidInstance);
   if (!_ActiveDevices.contains(GUIDString)) return hr;  // Device not attached, fail
