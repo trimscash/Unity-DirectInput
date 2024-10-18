@@ -243,18 +243,24 @@ HRESULT EnumerateFFBAxes(LPCSTR guidInstance, /*[out]*/ SAFEARRAY** FFBAxes) {
 }
 
 // Get Axis Num. it is not same as DIDEVCAPS.dwAxis. same as DIEFFECT.cAxis
-int GetDeviceFFBAxisNum(LPCSTR guidInstance) {
+HRESULT GetDeviceFFBAxisNum(LPCSTR guidInstance,/*[out]*/ int& AxisNum) {
+  HRESULT hr = E_FAIL;
+
   std::string GUIDString((LPCSTR)guidInstance);
   
-  if (!_ActiveDevices.contains(GUIDString)) return -1;
+  if (!_ActiveDevices.contains(GUIDString)) return hr;
 
   //Enumerate FFBAxes if not already
   if (!_DeviceFFBAxes.contains(GUIDString)) {
     _DeviceFFBAxes[GUIDString].clear(); // Clear Axes info for this device
-    _ActiveDevices[GUIDString]->EnumObjects(&_EnumFFBAxisCallback, &GUIDString, DIEFT_ALL); // Callback adds each effect to _DeviceFFBAxes with key as device's GUID
+    hr = _ActiveDevices[GUIDString]->EnumObjects(&_EnumFFBAxisCallback, &GUIDString, DIEFT_ALL); // Callback adds each effect to _DeviceFFBAxes with key as device's GUID
+    AxisNum = _DeviceFFBAxes[GUIDString].size();
+    return hr;
   }
 
-  return (int)_DeviceFFBAxes[GUIDString].size();
+  AxisNum = (int)_DeviceFFBAxes[GUIDString].size();
+
+  return S_OK;
 }
 
 // Creates/Enables the Effect on the device 

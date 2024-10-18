@@ -91,7 +91,7 @@ extern "C" {  // Everything to be made available by the DLL
 	DIRECTINPUTFORCEFEEDBACK_API HRESULT SetAutocenter(LPCSTR guidInstance, bool AutocenterState);
 	DIRECTINPUTFORCEFEEDBACK_API HRESULT EnumerateFFBEffects(LPCSTR guidInstance, /*[out]*/ SAFEARRAY** FFBEffects);
 	DIRECTINPUTFORCEFEEDBACK_API HRESULT EnumerateFFBAxes(LPCSTR guidInstance, /*[out]*/ SAFEARRAY** FFBAxis);
-  DIRECTINPUTFORCEFEEDBACK_API int GetDeviceFFBAxisNum(LPCSTR guidInstance);
+  DIRECTINPUTFORCEFEEDBACK_API HRESULT GetDeviceFFBAxisNum(LPCSTR guidInstance, /*out*/ int& axisNum);
 	DIRECTINPUTFORCEFEEDBACK_API HRESULT CreateFFBEffect(LPCSTR guidInstance, Effects::Type effectType);
 	DIRECTINPUTFORCEFEEDBACK_API HRESULT DestroyFFBEffect(LPCSTR guidInstance, Effects::Type effectType);
   DIRECTINPUTFORCEFEEDBACK_API HRESULT UpdateFFBEffect(LPCSTR guidInstance, Effects::Type effectType, DICONDITION* conditions, LONG conditionsLen);
