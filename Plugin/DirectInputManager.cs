@@ -39,6 +39,7 @@ namespace DirectInputManager
         [DllImport(DLLFile)] public static extern int UpdateFFBEffectWithDirection(string guidInstance, FFBEffects effectType, DICondition[] conditions, int conditionsLen, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction, int directionLen);
         [DllImport(DLLFile)] public static extern int UpdateFFBEffectDirection(string guidInstance, FFBEffects effectType, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.I4)] int[] direction, int directionLen);
         [DllImport(DLLFile)] public static extern int StopAllFFBEffects(string guidInstance);
+        [DllImport(DLLFile)] public static extern int GetDeviceFFBAxisNum(string guidInstance, out int axisNum);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate void DeviceChangeCallback(DBTEvents DBTEvent);
         [DllImport(DLLFile)] public static extern void SetDeviceChangeCallback([MarshalAs(UnmanagedType.FunctionPtr)] DeviceChangeCallback onDeviceChange);
@@ -79,6 +80,7 @@ namespace DirectInputManager
         public static Dictionary<string, ActiveDeviceInfo> activeDevices { get => _activeDevices; }
 
         public static Dictionary<string, DIDEVCAPS> deviceCapabilities = new Dictionary<string, DIDEVCAPS>();
+        public static Dictionary<string, int> deviceFFBAxis = new Dictionary<string, int>();
 
         //////////////////////////////////////////////////////////////
         // Methods
@@ -239,6 +241,26 @@ namespace DirectInputManager
             if (hresult != 0) { DebugLog($"GetDeviceCapabilities Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); /*return false;*/ }
             deviceCapabilities.Add(guidInstance, DeviceCapabilities);
             return DeviceCapabilities;
+        }
+
+        /// <summary>
+        /// return the number of FFB Axes<br/>not same as the number of DIDEVCAPS.dwAxes<br/> same as the number of Effect.cAxis<br/>
+        /// </summary>
+        /// <returns>
+        /// DIDEVCAPS https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ee416607(v=vs.85)
+        /// DIEFFECT https://learn.microsoft.com/ja-jp/previous-versions/windows/desktop/ee416616(v=vs.85)
+        /// </returns>
+        public static int GetDeviceFFBAxisNum(string guidInstance)
+        {
+            if (deviceFFBAxis.ContainsKey(guidInstance))
+            {
+                return deviceFFBAxis[guidInstance];
+            }
+
+            int axisNum = 0;
+            int hresult = Native.GetDeviceFFBAxisNum(guidInstance, out axisNum);
+            if (hresult != 0) { DebugLog($"GetDeviceFFBAxisNum Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); /*return false;*/ }
+            return axisNum;
         }
 
         /// <summary>
@@ -532,7 +554,7 @@ namespace DirectInputManager
             if (direction.Length != axisNum) { DebugLog($"UpdateFFBEffectWithDirection Failed: direction.Length != axisNum, direction.Length={direction.Length} axisNum={axisNum}"); return false; }
 
             int hresult = Native.UpdateFFBEffectWithDirection(guidInstance, effectType, conditions, conditions.Length, direction, direction.Length);
-            if (hresult != 0) { DebugLog($"UpdateFFBEffect Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
+            if (hresult != 0) { DebugLog($"UpdateFFBEffectWithDirection Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
             return true;
         }
 
